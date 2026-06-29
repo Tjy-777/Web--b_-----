@@ -1,0 +1,13 @@
+# データベースの接続情報が書かれたファイル（後述）
+config.php
+
+# エディタ（VSCodeなど）の設定フォルダ
+.vscode/
+
+# Windowsのシステムが自動生成するゴミファイル
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ログファイルやキャッシュ
+*.log
