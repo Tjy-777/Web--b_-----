@@ -1,0 +1,168 @@
+/* ① 全体の基本設定（リセットCSS） */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* ② 画面全体をスマホアプリのように固定する */
+body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    color: #333;
+    height: 100vh; /* 画面の高さをブラウザ100%にピタッと合わせる */
+    display: flex;
+    flex-direction: column; /* 縦並びにする */
+    overflow: hidden; /* 画面全体がスクロールしてしまうのを防ぐ */
+}
+
+/* ③ ヘッダー（上の緑の看板） */
+header {
+    background-color: #55b159; /* ステグリグリーン */
+    display: flex;
+    justify-content: center; /* ロゴを中央に配置 */
+    align-items: center;
+    /* ロゴを大きく見せるために、親要素(header)のパディングを調整 */
+    padding: 30px 20px; /* 上下30px、左右20px */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.header-logo {
+    /* ここを調整して大きくする */
+    height: 70px; /* おすすめのピクセル数（image_20.pngのバランスに近い） */
+    width: auto; /* 横幅は自動調整してアスペクト比を保つ */
+}
+
+header h1 {
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+}
+
+/* ④ メインエリア（地図と検索窓が入る場所） */
+main {
+    flex: 1; /* ヘッダー以外の残りの画面をすべて使う */
+    position: relative; /* 中の検索窓を浮かせるための基準にする */
+}
+
+/* ⑤ 検索エリア（地図の上に浮かせる） */
+/* ⑤ 検索エリア（地図の上に浮かせる） */
+.search-area {
+    position: absolute; /* 地図の上に浮かせる */
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%); 
+    width: 90%;
+    background-color: whitesmoke;
+    padding: 12px 20px;
+    border-radius: 30px; 
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+    
+    /* ★ここも 10 から 1000 に変更しておくと、地図の上にちゃんと浮かびます */
+    z-index: 1000;
+    
+    text-align: center;
+    font-weight: bold;
+    color: #666;
+}
+
+/* ⑥ マップエリア（後でGoogleマップが入る場所） */
+
+/* 変更前：.map-area だった部分を以下のように修正 */
+/* ⑥ マップエリア（OpenStreetMapが入る場所） */
+#map-area {
+    width: 100%;
+    height: 100%;
+    background-color: #e0e0e0; 
+    /* display, justify-content, align-items, color, font-size は不要になるので削除してOKです */
+}
+
+/* ⑦ 情報シート（画面の下からせり出している部分） */
+.info-sheet {
+    position: absolute; 
+    bottom: 0;
+    width: 100%;
+    height: 240px; /* ボタンなどの要素が入るように少し高めにしておく */
+    background-color: white;
+    border-radius: 20px 20px 0 0; 
+    padding: 0 20px 20px 20px; /* 上の余白を0にして矢印を一番上にする */
+    box-shadow: 0 -4px 10px rgba(0,0,0,0.1); 
+    z-index: 1000; 
+    
+    /* ★追加：初期状態は矢印の高さ(40px)だけ残して、残りを下に隠す */
+    transform: translateY(calc(100% - 40px));
+    
+    /* ★追加：スルッと動かすためのアニメーション魔法 */
+    transition: transform 0.3s ease-in-out; 
+}
+
+/* ★追加：JavaScriptでこのクラスがついたら、元の位置（0）に戻って全表示される */
+.info-sheet.open {
+    transform: translateY(0);
+}
+
+/* ⑩ 開閉ボタン（矢印）のデザイン */
+.toggle-btn {
+    width: 100%;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #888;
+    font-size: 1.2rem;
+    cursor: pointer;
+}
+
+/* 既存のh2の上の余白を消して、矢印の下にピッタリくっつける */
+.info-sheet h2 {
+    margin-top: 0;
+    font-size: 1.2rem;
+    color: #2e7d32;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+}
+
+/* ⑧ お気に入り保存ボタン周りのデザイン */
+.action-area {
+    margin-top: 15px;
+    text-align: center;
+}
+
+.save-btn {
+    background-color: #ffb74d; /* 自然に合う優しいオレンジ色 */
+    color: white;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 25px; /* 丸っこくする */
+    font-size: 1rem;
+    font-weight: bold;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: all 0.2s ease; /* 押したときのアニメーション用 */
+}
+
+/* スマホでタップした（押した）時の動き */
+.save-btn:active {
+    transform: scale(0.95); /* 少しだけ縮む */
+    box-shadow: 0 2px 3px rgba(0,0,0,0.1); /* 影を小さくして押した感を出す */
+}
+
+/* ⑨ 保存リストのデザイン */
+.saved-list {
+    list-style: none; /* 先頭の黒ポチを消す */
+    margin-top: 15px;
+    max-height: 70px; /* シートからはみ出さないように高さを制限 */
+    overflow-y: auto; /* 数が増えたらスクロールできるようにする */
+}
+
+.saved-list li {
+    padding: 8px 10px;
+    border-bottom: 1px dashed #ccc;
+    font-size: 0.95rem;
+    color: #555;
+    cursor: pointer; /* 押せることをアピール */
+}
+
+/* リストを押した時の色 */
+.saved-list li:active {
+    background-color: #f5f5f5;
+}

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ステップグリーン</title>
+    <link rel="icon" href="images/logo.png">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1><img src="images/logo-nobg.png" alt="ステップグリーン" class="header-logo"></h1>
+    </header>
+
+    <main>
+        <div id="map-area"></div>
+    </main>
+
+    <div class="info-sheet">
+        <h2>自然、公園の詳細</h2>
+        </div>
+
+    <div class="info-sheet" id="info-sheet">
+        <div class="toggle-btn" id="toggle-btn">▲</div>
+        
+        <h2>自然、公園の詳細</h2>
+        <div class="action-area">
+            <button id="save-btn" class="save-btn">♡ お気に入りに保存</button>
+        </div>
+        <ul id="saved-list" class="saved-list"></ul>
+    </div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
