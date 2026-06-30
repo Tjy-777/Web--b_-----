@@ -1,13 +1,16 @@
-# データベースの接続情報が書かれたファイル（後述）
-config.php
+# 【追加】トークンなどの秘密情報を書いた設定ファイル
+config.js
 
-# エディタ（VSCodeなど）の設定フォルダ
-.vscode/
+# データベースの接続情報が書かれたファイル 
+config.php 
 
-# Windowsのシステムが自動生成するゴミファイル
-Thumbs.db
-ehthumbs.db
-Desktop.ini
+# エディタ（VSCodeなど）の設定フォルダ 
+.vscode/ 
 
-# ログファイルやキャッシュ
+# Windowsのシステムが自動生成するゴミファイル 
+Thumbs.db 
+ehthumbs.db 
+Desktop.ini 
+
+# ログファイルやキャッシュ 
 *.log

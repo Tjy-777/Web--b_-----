@@ -19,23 +19,34 @@
         <div id="map-area"></div>
     </main>
 
-    <div class="info-sheet">
-        <h2>自然、公園の詳細</h2>
-        </div>
-
     <div id="info-sheet" class="info-sheet">
-    <button id="toggle-btn" class="toggle-btn">▲</button>
-    
-    <h2 id="park-title">自然、公園の詳細</h2> 
-    
-    <div id="park-details">
-        <p id="park-description">ピンを選択すると、ここに詳細が表示されます。</p>
-        <ul id="park-features-list" style="list-style: none; padding: 0; text-align: left; margin-top: 15px;">
-            </ul>
+        <button id="toggle-btn" class="toggle-btn">▲</button>
+        
+        <h2 id="park-title">自然、公園の詳細</h2> 
+        
+        <div id="park-details">
+            <div id="streetview-container">
+                <iframe id="mapillary-viewer" src="" frameborder="0" allowfullscreen allow="xr-spatial-tracking"></iframe>
+                <div id="streetview-placeholder">ピンを選択すると、ここに現地の360度写真が表示されます。</div>
+            </div>
+
+            <p id="park-description">現地のリアルタイム情報（OpenStreetMapデータ）</p>
+            <ul id="park-features-list" style="list-style: none; padding: 0; text-align: left; margin-top: 10px;">
+                </ul>
+            
+            <div id="google-btn-area" style="margin-top: 15px; text-align: center; display: none;">
+                <a id="google-sv-link" href="#" target="_blank" class="google-sv-btn">
+                    Googleストリートビューで開く 🗺️
+                </a>
+            </div>
+        </div>
     </div>
-</div>
     
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script src="https://unpkg.com/leaflet.vectorgrid@1.3.0/dist/Leaflet.VectorGrid.bundled.min.js"></script>
+
+    <script src="config.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

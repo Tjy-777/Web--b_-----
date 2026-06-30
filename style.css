@@ -80,23 +80,24 @@ main {
     position: absolute; 
     bottom: 0;
     width: 100%;
-    height: 240px; /* ボタンなどの要素が入るように少し高めにしておく */
+    
+    /* ★修正：最初は「矢印の高さ（40px）」だけにして閉じておく */
+    height: 40px; 
+    
     background-color: white;
     border-radius: 20px 20px 0 0; 
-    padding: 0 20px 20px 20px; /* 上の余白を0にして矢印を一番上にする */
+    padding: 0 20px 20px 20px; 
     box-shadow: 0 -4px 10px rgba(0,0,0,0.1); 
     z-index: 1000; 
     
-    /* ★追加：初期状態は矢印の高さ(40px)だけ残して、残りを下に隠す */
-    transform: translateY(calc(100% - 40px));
-    
-    /* ★追加：スルッと動かすためのアニメーション魔法 */
-    transition: transform 0.3s ease-in-out; 
+    /* ★修正：移動(transform)ではなく、高さ(height)をアニメーションさせる */
+    transition: height 0.3s ease-in-out; 
+    overflow-y: auto; 
 }
 
-/* ★追加：JavaScriptでこのクラスがついたら、元の位置（0）に戻って全表示される */
+/* ★修正：クラスがついたら標準の高さ(420px)に伸びる */
 .info-sheet.open {
-    transform: translateY(0);
+    height: 420px;
 }
 
 /* ⑩ 開閉ボタン（矢印）のデザイン */
@@ -233,4 +234,57 @@ button.toggle-btn {
     display: flex;
     align-items: center;
     gap: 6px; /* ラジオボタンと文字の間の余白 */
+}
+
+/* ======================================================
+   ★ここから新しく追加：ストリートビュー周りのデザイン
+   ====================================================== */
+
+/* 360度写真を入れる四角い枠 */
+#streetview-container {
+    width: 100%;
+    height: 180px;
+    background-color: #f0f0f0;
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 15px;
+}
+
+/* Mapillaryのプレイヤー（最初は非表示、連動したら表示） */
+#mapillary-viewer {
+    width: 100%;
+    height: 100%;
+    display: none;
+}
+
+/* まだ写真が読み込まれていない時の説明文字 */
+#streetview-placeholder {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #888;
+    font-size: 0.9rem;
+    text-align: center;
+    width: 80%;
+}
+
+/* Googleストリートビューを開くボタン */
+.google-sv-btn {
+    display: inline-block;
+    background-color: #4285F4; /* Googleブルー */
+    color: white;
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: background-color 0.2s;
+}
+
+.google-sv-btn:active {
+    background-color: #3367D6;
+    transform: scale(0.98);
 }
