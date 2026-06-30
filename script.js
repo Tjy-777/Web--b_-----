@@ -53,7 +53,7 @@ const baseMaps = {
 };
 
 const overlayMaps = {
-    "ストリートビューが撮れる場所": mapillaryLines
+    "ストリートビューを表示": mapillaryLines
 };
 
 L.control.zoom({ position: 'topleft' }).addTo(map);
