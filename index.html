@@ -23,15 +23,17 @@
         <h2>自然、公園の詳細</h2>
         </div>
 
-    <div class="info-sheet" id="info-sheet">
-        <div class="toggle-btn" id="toggle-btn">▲</div>
-        
-        <h2>自然、公園の詳細</h2>
-        <div class="action-area">
-            <button id="save-btn" class="save-btn">♡ お気に入りに保存</button>
-        </div>
-        <ul id="saved-list" class="saved-list"></ul>
+    <div id="info-sheet" class="info-sheet">
+    <button id="toggle-btn" class="toggle-btn">▲</button>
+    
+    <h2 id="park-title">自然、公園の詳細</h2> 
+    
+    <div id="park-details">
+        <p id="park-description">ピンを選択すると、ここに詳細が表示されます。</p>
+        <ul id="park-features-list" style="list-style: none; padding: 0; text-align: left; margin-top: 15px;">
+            </ul>
     </div>
+</div>
     
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="script.js"></script>
