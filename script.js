@@ -29,7 +29,7 @@ const mapillaryLines = L.vectorGrid.protobuf(mapillaryUrl, {
         image: []
     },
     interactive: true, 
-    attribution: '© <a href="https://www.mapillary.com/" target="_blank">Mapillary</a>'
+    attribution: '© <a href="https://www.mapillary.com/terms" target="_blank">Mapillary</a>'
 });
 
 mapillaryLines.on('click', function(e) {
@@ -82,7 +82,7 @@ toggleBtn.addEventListener('click', (e) => {
     const currentHeight = infoSheet.offsetHeight;
     
     const closedHeight = 40;  // 閉じた状態の高さ
-    const openHeight = 420;   // 開いた状態の標準の高さ
+    const openHeight = 650;   // ★修正：CSSと合わせて 520 から 650 に変更する
 
     // 半分以上開いていたら閉じる、閉じていたら開く
     if (currentHeight > closedHeight + 10) {
@@ -97,8 +97,8 @@ toggleBtn.addEventListener('click', (e) => {
 });
 
 // ② 矢印ボタン限定・ドラッグ機能（高さを引っ張り上げる）
-toggleBtn.addEventListener('mousedown', startDrag);
-toggleBtn.addEventListener('touchstart', startDrag, { passive: false });
+toggleBtn.addEventListener('mousedown', startDrag); /* ★修正：infoSheet から toggleBtn に変更 */
+toggleBtn.addEventListener('touchstart', startDrag, { passive: false }); /* ★修正：infoSheet から toggleBtn に変更 */
 
 function startDrag(e) {
     if (e.type === 'mousedown') e.preventDefault(); 
@@ -302,6 +302,12 @@ function showStreetView(lat, lon) {
     const placeholder = document.getElementById('streetview-placeholder');
     const googleBtnArea = document.getElementById('google-btn-area');
     const googleSvLink = document.getElementById('google-sv-link');
+
+    // ★追加：ドラッグで手動変更された高さをクリアして、CSS（520px）が効くようにする！
+    if (infoSheet) {
+        infoSheet.style.height = ''; 
+        infoSheet.style.transition = 'height 0.3s ease-in-out'; // アニメーションも復活させる
+    }
 
     if (placeholder) {
         placeholder.textContent = "現地の写真を検索中...";

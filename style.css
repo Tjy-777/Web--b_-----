@@ -80,51 +80,53 @@ main {
     position: absolute; 
     bottom: 0;
     width: 100%;
-    
-    /* ★修正：最初は「矢印の高さ（40px）」だけにして閉じておく */
     height: 40px; 
-    
     background-color: white;
     border-radius: 20px 20px 0 0; 
     padding: 0 20px 20px 20px; 
     box-shadow: 0 -4px 10px rgba(0,0,0,0.1); 
     z-index: 1000; 
-    
-    /* ★修正：移動(transform)ではなく、高さ(height)をアニメーションさせる */
     transition: height 0.3s ease-in-out; 
     overflow-y: auto; 
+    scrollbar-width: none; /* Firefox用 */
+}
+
+/* ★追加：スクロールバー自体を非表示にする（Google Chrome、Safariなど用） */
+.info-sheet::-webkit-scrollbar {
+    display: none;
 }
 
 /* ★修正：クラスがついたら標準の高さ(420px)に伸びる */
 .info-sheet.open {
-    height: 420px;
+    height: 650px;
 }
 
 /* ⑩ 開閉ボタン（矢印）のデザイン */
 /* buttonタグの標準デザインを強力にリセットします */
+/* ⑩ 開閉ボタン（矢印）のデザイン */
 button.toggle-btn {
-    /* 四角い枠や背景を完全に消す */
-    background: none;        /* 背景色を透明に */
-    border: none;            /* 枠線を消す */
-    outline: none;           /* クリックした時の青い枠線も消す */
-    -webkit-appearance: none; /* iOSなどのブラウザ標準デザインを解除 */
+    /* ★追加：ボタンをシートの最上部に張り付かせる（スクロールしても動かなくなる） */
+    position: sticky;
+    top: 0;
+    background-color: white; /* 下の中身が透けないように背景を白にする */
+
+    /* 以下は既存のコードのまま */
+    border: none;            
+    outline: none;           
+    -webkit-appearance: none; 
     appearance: none;
-    
-    /* 位置とサイズを整える */
     width: 100%;
     height: 40px;
     display: flex;
     justify-content: center;
     align-items: center;
-    
-    /* 矢印の色と大きさ */
     color: #888;
     font-size: 1.2rem;
     cursor: pointer;
-    
-    /* 念のためパディングもリセット */
     padding: 0;
     margin: 0;
+    /* ★追加：念のため中身の文字より手前に表示されるようにする */
+    z-index: 10;
 }
 
 /* 既存のh2の上の余白を消して、矢印の下にピッタリくっつける */
@@ -243,7 +245,7 @@ button.toggle-btn {
 /* 360度写真を入れる四角い枠 */
 #streetview-container {
     width: 100%;
-    height: 180px;
+    height: 400px; /* ★修正：枠の高さを 200px から 300px に大きくする */
     background-color: #f0f0f0;
     border-radius: 12px;
     position: relative;
@@ -268,6 +270,28 @@ button.toggle-btn {
     font-size: 0.9rem;
     text-align: center;
     width: 80%;
+}
+
+/* style.css の一番下に追記 */
+
+/* 写真エリアの外側・右下に配置するクレジット文字 */
+.mapillary-credit {
+    text-align: right;       /* 右寄せにする */
+    font-size: 0.7rem;       /* 控えめな文字サイズ */
+    margin-top: -10px;       /* 写真枠とのすき間を少し詰める調整 */
+    margin-bottom: 15px;     /* 下にある説明テキストとの間の余白 */
+}
+
+/* ★追加：クレジット内のリンクのデザイン */
+.mapillary-credit a {
+    color: #888;             /* 目立ちすぎないグレー色 */
+    text-decoration: none;   /* 下線を消す */
+}
+
+/* ★追加：マウスを乗せたとき（ホバー時）だけ下線を出してリンクだと分かりやすくする */
+.mapillary-credit a:hover {
+    text-shadow: 0 0 1px rgba(0,0,0,0.2); /* うっすら強調 */
+    text-decoration: underline;           /* 下線を表示 */
 }
 
 /* Googleストリートビューを開くボタン */
