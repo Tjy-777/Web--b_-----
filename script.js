@@ -22,7 +22,7 @@ const mapillaryLines = L.vectorGrid.protobuf(mapillaryUrl, {
     maxNativeZoom: 14, 
     vectorTileLayerStyles: {
         sequence: {
-            color: '#35AF6D', 
+            color: '#3ca3df', 
             weight: 1.5,      
             opacity: 0.5      
         },
@@ -82,7 +82,7 @@ toggleBtn.addEventListener('click', (e) => {
     const currentHeight = infoSheet.offsetHeight;
     
     const closedHeight = 40;  // 閉じた状態の高さ
-    const openHeight = 650;   // ★修正：CSSと合わせて 520 から 650 に変更する
+    const openHeight = 400;   // ★修正：CSSと合わせて 520 から 650 に変更する
 
     // 半分以上開いていたら閉じる、閉じていたら開く
     if (currentHeight > closedHeight + 10) {
@@ -185,6 +185,11 @@ function stopDrag(e) {
 // 3. 現在地周辺の公園データを自動取得してピンを追加する
 // ======================================================
 const markerGroup = L.layerGroup().addTo(map);
+
+let selectedMarker = null;
+
+let parks = [];
+
 fetchNearbyParks(startLat, startLon);
 
 function fetchNearbyParks(lat, lon) {
@@ -210,6 +215,7 @@ function fetchNearbyParks(lat, lon) {
         if (!response.ok) throw new Error("サーバーエラー");
         return response.json();
     })
+
     .then(data => {
         if (data.elements && data.elements.length > 0) {
             data.elements.forEach(element => {
@@ -232,6 +238,13 @@ function fetchNearbyParks(lat, lon) {
                         weight: 2,
                         opacity: 1,
                         fillOpacity: 0.8
+                    });
+
+                    parks.push({
+                        name: pName,
+                        tags: tags,
+                        lat: pLat,
+                        lon: pLon
                     });
 
                     marker.bindPopup(`
@@ -258,6 +271,7 @@ function fetchNearbyParks(lat, lon) {
         }
     })
     .catch(error => console.error("公園データの取得に失敗しました:", error));
+    parks = [];
 }
 
 window.selectPark = function(name, tags, lat, lon) {
@@ -282,6 +296,19 @@ window.selectPark = function(name, tags, lat, lon) {
         if (tags.toilets === "yes") toiletsText = "🧼 あり";
         if (tags.toilets === "no") toiletsText = "❌ なし";
 
+        let playgroundText = "❓ 情報なし";
+        if (tags.playground === "yes") playgroundText = "🛝 あり";
+        if (tags.playground === "no") playgroundText = "❌ なし";
+
+        let wheelchairText = "❓ 情報なし";
+        if (tags.wheelchair === "yes") wheelchairText = "♿ 対応";
+        if (tags.wheelchair === "no") wheelchairText = "❌ 非対応";
+        if (tags.wheelchair === "limited") wheelchairText = "⚠️ 一部対応";
+
+        let parkingText = "❓ 情報なし";
+        if (tags.parking === "yes") parkingText = "🚗 あり";
+        if (tags.parking === "no") parkingText = "❌ なし";
+
         featuresList.innerHTML = `
             <li style="margin-bottom: 6px;"><b>分類:</b> ${typeText}</li>
             <li style="margin-bottom: 6px;"><b>公衆トイレ:</b> ${toiletsText}</li>
@@ -291,6 +318,18 @@ window.selectPark = function(name, tags, lat, lon) {
                 <li style="margin-bottom: 6px;"><b>リンク:</b> <a href="${tags.website}" target="_blank" style="color: #2e7d32;">公式ウェブサイト 🔗</a></li>
             `;
         }
+        featuresList.innerHTML += `
+           <li><b>遊具:</b> ${playgroundText}</li>
+        `;
+
+        featuresList.innerHTML += `
+            <li><b>バリアフリー:</b> ${wheelchairText}</li>
+        `;
+
+        featuresList.innerHTML += `
+            <li><b>駐車場:</b> ${parkingText}</li>
+        `;
+
     }
 };
 
@@ -344,4 +383,123 @@ function showStreetView(lat, lon) {
 
     if (infoSheet) infoSheet.classList.add('open');
     if (toggleBtn) toggleBtn.textContent = '▼';
+}
+
+// ==========================================
+// 地図をタップした場所を検索
+// ==========================================
+map.on("click", function (e) {
+
+    const lat = e.latlng.lat;
+    const lon = e.latlng.lng;
+
+    // 赤いピンを更新
+    if (selectedMarker) {
+        map.removeLayer(selectedMarker);
+    }
+
+    selectedMarker = L.marker([lat, lon], {
+    icon: new L.Icon({
+        iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
+        shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    })
+}).addTo(map);
+
+// ポップアップ表示
+selectedMarker.bindPopup(`
+    <div style="text-align:center;">
+        <b>選択した場所</b><br>
+        <button id="open-detail-btn"
+            style="
+                margin-top:8px;
+                padding:6px 12px;
+                background:#d32f2f;
+                color:white;
+                border:none;
+                border-radius:5px;
+                cursor:pointer;">
+            この場所の情報を見る
+        </button>
+    </div>
+`);
+
+// ボタンが押されたら検索
+selectedMarker.on("popupopen", () => {
+
+    const btn = document.getElementById("open-detail-btn");
+
+    if (btn) {
+
+            btn.onclick = () => {
+        // ① 情報シートを先に開く
+        infoSheet.classList.add("open");
+
+        // または現在の開く処理を呼ぶ
+        infoSheet.style.height = `400px`;
+
+        // ② 「検索中」を表示
+        document.getElementById("park-title").textContent = "検索中...";
+        document.getElementById("park-features-list").innerHTML =
+            "<li>📍 周辺の公園情報を検索しています...</li>";
+
+        // ③ 検索開始
+        searchNearestPark(lat, lon);
+        };
+    }
+});
+
+// ピンを立てたらポップアップを開く
+selectedMarker.openPopup();
+
+});
+
+function searchNearestPark(lat, lon) {
+
+    if (parks.length === 0) {
+        alert("公園データを読み込み中です。");
+        return;
+    }
+
+    let nearest = null;
+    let minDistance = Infinity;
+
+    parks.forEach(park => {
+
+        const distance = map.distance(
+            [lat, lon],
+            [park.lat, park.lon]
+        );
+
+        if (distance < minDistance) {
+            minDistance = distance;
+            nearest = park;
+        }
+
+    });
+
+    // 100m以内だけ対象
+    if (nearest && minDistance <= 100) {
+
+        selectPark(
+            nearest.name,
+            nearest.tags,
+            nearest.lat,
+            nearest.lon
+        );
+
+    } else {
+
+        document.getElementById("park-title").textContent =
+            "選択した場所";
+
+        document.getElementById("park-features-list").innerHTML =
+            `<li>この周辺100m以内に公園情報はありません。</li>`;
+
+        showStreetView(lat, lon);
+
+    }
 }

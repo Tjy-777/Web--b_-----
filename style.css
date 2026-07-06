@@ -98,7 +98,7 @@ main {
 
 /* ★修正：クラスがついたら標準の高さ(420px)に伸びる */
 .info-sheet.open {
-    height: 650px;
+    height: 400px;
 }
 
 /* ⑩ 開閉ボタン（矢印）のデザイン */
@@ -245,7 +245,7 @@ button.toggle-btn {
 /* 360度写真を入れる四角い枠 */
 #streetview-container {
     width: 100%;
-    height: 400px; /* ★修正：枠の高さを 200px から 300px に大きくする */
+    height: 300px; /* ★修正：枠の高さを 200px から 300px に大きくする */
     background-color: #f0f0f0;
     border-radius: 12px;
     position: relative;
