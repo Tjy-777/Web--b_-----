@@ -192,8 +192,33 @@ let parks = [];
 
 fetchNearbyParks(startLat, startLon);
 
+// ======================================================
+// ★追加：地図を動かしたら、その場所周辺の公園を再検索する
+// ======================================================
+let lastFetchedLat = startLat;
+let lastFetchedLon = startLon;
+const REFETCH_DISTANCE = 500; // これ以上動いたら再検索（メートル）
+
+map.on('moveend', function () {
+    const center = map.getCenter();
+    const distance = map.distance(
+        [lastFetchedLat, lastFetchedLon],
+        [center.lat, center.lng]
+    );
+
+    if (distance > REFETCH_DISTANCE) {
+        lastFetchedLat = center.lat;
+        lastFetchedLon = center.lng;
+        fetchNearbyParks(center.lat, center.lng);
+    }
+});
+
 function fetchNearbyParks(lat, lon) {
+
     markerGroup.clearLayers();
+
+    parks = [];
+
     const radius = 2000;
     const overpassUrl = 'https://overpass-api.de/api/interpreter';
     
@@ -271,7 +296,6 @@ function fetchNearbyParks(lat, lon) {
         }
     })
     .catch(error => console.error("公園データの取得に失敗しました:", error));
-    parks = [];
 }
 
 window.selectPark = function(name, tags, lat, lon) {
@@ -457,49 +481,99 @@ selectedMarker.openPopup();
 
 });
 
-function searchNearestPark(lat, lon) {
+// ======================================================
+// ★追加：タップした地点だけを対象にした軽量・即時検索
+// ======================================================
+function fetchNearestParkAtPoint(lat, lon) {
+    const radius = 300; // ピンポイントなので範囲は小さくてOK（速度優先）
+    const overpassUrl = 'https://overpass-api.de/api/interpreter';
 
-    if (parks.length === 0) {
-        alert("公園データを読み込み中です。");
-        return;
-    }
+    const query = `
+        [out:json][timeout:15];
+        (
+          nwr["leisure"="park"](around:${radius},${lat},${lon});
+          nwr["landuse"="forest"](around:${radius},${lat},${lon});
+          nwr["natural"="wood"](around:${radius},${lat},${lon});
+        );
+        out center;
+    `;
+
+    return fetch(overpassUrl, { method: 'POST', body: query })
+        .then(response => {
+            if (!response.ok) throw new Error("サーバーエラー");
+            return response.json();
+        })
+        .then(data => {
+            const results = [];
+            if (data.elements && data.elements.length > 0) {
+                data.elements.forEach(element => {
+                    const pLat = element.lat || (element.center && element.center.lat);
+                    const pLon = element.lon || (element.center && element.center.lon);
+                    const tags = element.tags || {};
+
+                    let fallbackName = "近くの自然スポット";
+                    if (tags.leisure === "park") fallbackName = "近くの公園（名称不明）";
+                    if (tags.landuse === "forest") fallbackName = "近くの管理された森（名称不明）";
+                    if (tags.natural === "wood") fallbackName = "近くの自然の森（名称不明）";
+
+                    const pName = tags.name ? tags.name : fallbackName;
+
+                    if (pLat && pLon) {
+                        results.push({ name: pName, tags: tags, lat: pLat, lon: pLon });
+                    }
+                });
+            }
+            return results;
+        });
+}
+
+// 距離判定だけをまとめた共通関数
+function findNearestParkInList(list, lat, lon) {
+    if (!list || list.length === 0) return null;
 
     let nearest = null;
     let minDistance = Infinity;
 
-    parks.forEach(park => {
-
-        const distance = map.distance(
-            [lat, lon],
-            [park.lat, park.lon]
-        );
-
+    list.forEach(park => {
+        const distance = map.distance([lat, lon], [park.lat, park.lon]);
         if (distance < minDistance) {
             minDistance = distance;
             nearest = park;
         }
-
     });
 
-    // 100m以内だけ対象
-    if (nearest && minDistance <= 100) {
+    return (nearest && minDistance <= 100) ? nearest : null;
+}
 
-        selectPark(
-            nearest.name,
-            nearest.tags,
-            nearest.lat,
-            nearest.lon
-        );
+function searchNearestPark(lat, lon) {
 
-    } else {
+    // ① まずは既に読み込み済みの parks 配列から探す（一致すれば一瞬で表示できる）
+    const localMatch = findNearestParkInList(parks, lat, lon);
 
-        document.getElementById("park-title").textContent =
-            "選択した場所";
-
-        document.getElementById("park-features-list").innerHTML =
-            `<li>この周辺100m以内に公園情報はありません。</li>`;
-
-        showStreetView(lat, lon);
-
+    if (localMatch) {
+        selectPark(localMatch.name, localMatch.tags, localMatch.lat, localMatch.lon);
+        return;
     }
+
+    // ② 既存データに無ければ、タップ地点だけを対象に即時検索する（検索範囲外エリア対策）
+    fetchNearestParkAtPoint(lat, lon)
+        .then(pinpointResults => {
+            const match = findNearestParkInList(pinpointResults, lat, lon);
+
+            if (match) {
+                selectPark(match.name, match.tags, match.lat, match.lon);
+            } else {
+                document.getElementById("park-title").textContent = "選択した場所";
+                document.getElementById("park-features-list").innerHTML =
+                    `<li>この周辺100m以内に公園情報はありません。</li>`;
+                showStreetView(lat, lon);
+            }
+        })
+        .catch(error => {
+            console.error("ピンポイント検索エラー:", error);
+            document.getElementById("park-title").textContent = "選択した場所";
+            document.getElementById("park-features-list").innerHTML =
+                `<li>公園情報の検索中にエラーが発生しました。</li>`;
+            showStreetView(lat, lon);
+        });
 }

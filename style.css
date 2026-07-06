@@ -44,10 +44,9 @@ main {
 }
 
 /* ⑤ 検索エリア（地図の上に浮かせる） */
-/* ⑤ 検索エリア（地図の上に浮かせる） */
-.search-area {
+/* .search-area {
     position: absolute; /* 地図の上に浮かせる */
-    top: 15px;
+    /* top: 15px;
     left: 50%;
     transform: translateX(-50%); 
     width: 90%;
@@ -55,14 +54,14 @@ main {
     padding: 12px 20px;
     border-radius: 30px; 
     box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
-    
+     */
     /* ★ここも 10 から 1000 に変更しておくと、地図の上にちゃんと浮かびます */
-    z-index: 1000;
+    /* z-index: 1000;
     
     text-align: center;
     font-weight: bold;
     color: #666;
-}
+} */
 
 /* ⑥ マップエリア（後でGoogleマップが入る場所） */
 
