@@ -57,7 +57,47 @@ const overlayMaps = {
 };
 
 L.control.zoom({ position: 'topleft' }).addTo(map);
-L.control.layers(baseMaps, overlayMaps, { position: 'topleft' }).addTo(map);
+const layersControl = L.control.layers(baseMaps, overlayMaps, { position: 'topleft' }).addTo(map);
+
+// ======================================================
+// ★修正：レイヤー切り替えボタンを「ホバーで開く」→「クリックで開く」に変更
+// （Leaflet内部のmouseover/clickハンドラより先にイベントを止めることで競合を防ぐ）
+// ======================================================
+let ignoreNextMapClick = false;
+const layersContainer = layersControl.getContainer();
+const layersToggle = layersContainer ? layersContainer.querySelector('.leaflet-control-layers-toggle') : null;
+
+if (layersContainer && layersToggle) {
+    // ★重要：documentの「キャプチャフェーズ」で先取りする。
+    // これによりLeaflet内部がcontainer/toggleに直接バインドしているmouseover・clickハンドラより
+    // 必ず先に実行され、stopPropagationで内部処理まで届かないようにできる。
+
+    // ホバーによる自動展開を完全に無効化
+    document.addEventListener('mouseover', function (e) {
+        if (layersContainer.contains(e.target)) {
+            e.stopPropagation();
+        }
+    }, true);
+
+    document.addEventListener('mouseout', function (e) {
+        if (layersContainer.contains(e.target)) {
+            e.stopPropagation();
+        }
+    }, true);
+
+    // クリックでのみ開閉する
+    document.addEventListener('click', function (e) {
+        if (layersToggle.contains(e.target)) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            layersContainer.classList.toggle('leaflet-control-layers-expanded');
+
+            // ★追加：このクリックの直後に地図側でも仮ピンが立たないようにする
+            ignoreNextMapClick = true;
+        }
+    }, true);
+}
 
 const startMarker = L.marker([startLat, startLon]).addTo(map);
 startMarker.bindPopup('<b>スタート地点</b>').openPopup();
@@ -213,11 +253,12 @@ map.on('moveend', function () {
     }
 });
 
+let isFetchingParks = false;
+
 function fetchNearbyParks(lat, lon) {
 
-    markerGroup.clearLayers();
-
-    parks = [];
+    if (isFetchingParks) return;
+    isFetchingParks = true;
 
     const radius = 2000;
     const overpassUrl = 'https://overpass-api.de/api/interpreter';
@@ -242,6 +283,10 @@ function fetchNearbyParks(lat, lon) {
     })
 
     .then(data => {
+
+        markerGroup.clearLayers();
+        parks = [];
+
         if (data.elements && data.elements.length > 0) {
             data.elements.forEach(element => {
                 const pLat = element.lat || (element.center && element.center.lat);
@@ -295,7 +340,13 @@ function fetchNearbyParks(lat, lon) {
             });
         }
     })
-    .catch(error => console.error("公園データの取得に失敗しました:", error));
+    .catch(error => {
+    console.error("公園データの取得に失敗しました:", error);
+    })
+
+    .finally(() => {
+        isFetchingParks = false;
+    });
 }
 
 window.selectPark = function(name, tags, lat, lon) {
@@ -413,6 +464,12 @@ function showStreetView(lat, lon) {
 // 地図をタップした場所を検索
 // ==========================================
 map.on("click", function (e) {
+
+    // ★修正：直前にレイヤーボタンを操作していた場合は、今回の地図クリックを無視する
+    if (ignoreNextMapClick) {
+        ignoreNextMapClick = false;
+        return;
+    }
 
     const lat = e.latlng.lat;
     const lon = e.latlng.lng;
@@ -577,3 +634,25 @@ function searchNearestPark(lat, lon) {
             showStreetView(lat, lon);
         });
 }
+
+// ======================================================
+// ★追加：ヘッダーの三本線メニューの開閉
+// ======================================================
+const menuBtn = document.getElementById('menu-btn');
+const sideMenu = document.getElementById('side-menu');
+const sideOverlay = document.getElementById('side-overlay');
+const sideCloseBtn = document.getElementById('side-close-btn');
+
+function openSideMenu() {
+    sideMenu.classList.add('open');
+    sideOverlay.classList.add('open');
+}
+
+function closeSideMenu() {
+    sideMenu.classList.remove('open');
+    sideOverlay.classList.remove('open');
+}
+
+if (menuBtn) menuBtn.addEventListener('click', openSideMenu);
+if (sideCloseBtn) sideCloseBtn.addEventListener('click', closeSideMenu);
+if (sideOverlay) sideOverlay.addEventListener('click', closeSideMenu); // 項目以外(暗転部分)をクリックしたら閉じる

@@ -311,3 +311,125 @@ button.toggle-btn {
     background-color: #3367D6;
     transform: scale(0.98);
 }
+
+/* ======================================================
+   ★追加：ヘッダーの三本線メニューボタン
+   ====================================================== */
+
+header {
+    position: relative; /* メニューボタンを右端に絶対配置するための基準 */
+}
+
+.menu-btn {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    z-index: 10;
+}
+
+.menu-btn span {
+    display: block;
+    width: 26px;
+    height: 3px;
+    background-color: #ffffff;
+    border-radius: 2px;
+}
+
+.menu-btn:active span {
+    background-color: #eaeaea;
+}
+
+/* ======================================================
+   ★追加：背景を暗くするオーバーレイ
+   ====================================================== */
+.side-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.45);
+    opacity: 0;
+    pointer-events: none; /* 閉じているときはクリックを透過させる */
+    transition: opacity 0.3s ease;
+    z-index: 2000; /* 情報シート(1000)より確実に手前 */
+}
+
+.side-overlay.open {
+    opacity: 1;
+    pointer-events: auto; /* 開いているときはクリックを受け付ける */
+}
+
+/* ======================================================
+   ★追加：右からスライドインするサイドメニュー
+   ====================================================== */
+.side-menu {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 65%;
+    max-width: 400px;
+    height: 100%;
+    background-color: rgb(244, 255, 219);
+    box-shadow: -4px 0 12px rgba(0, 0, 0, 0.15);
+    transform: translateX(100%); /* 最初は画面外（右側）に隠す */
+    transition: transform 0.3s ease-in-out;
+    z-index: 2001; /* オーバーレイよりさらに手前 */
+    padding: 20px;
+}
+
+.side-menu.open {
+    transform: translateX(0); /* 開くと画面内に入ってくる */
+}
+
+.side-close-btn {
+    background: none;
+    border: none;
+    font-size: 1.8rem;
+    color: #888;
+    cursor: pointer;
+    display: block;
+    margin-left: auto;
+    margin-bottom: 15px;
+    line-height: 1;
+    padding: 4px 8px;
+}
+
+.side-close-btn:active {
+    color: #555;
+}
+
+.side-menu-list {
+    list-style: none;
+}
+
+.side-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 8px;
+    font-size: 1rem;
+    color: #333;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+}
+
+.side-menu-item:active {
+    background-color: #f5f5f5;
+}
+
+.side-menu-icon {
+    font-size: 1.2rem;
+}
