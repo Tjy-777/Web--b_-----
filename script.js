@@ -230,6 +230,14 @@ let selectedMarker = null;
 
 let parks = [];
 
+// 重複マーカー防止
+const parkMap = new Map();
+
+// 取得済みエリアを保存
+const fetchedAreas = [];
+// 通信中フラグ
+let isFetchingParks = false;
+
 fetchNearbyParks(startLat, startLon);
 
 // ======================================================
@@ -239,21 +247,48 @@ let lastFetchedLat = startLat;
 let lastFetchedLon = startLon;
 const REFETCH_DISTANCE = 500; // これ以上動いたら再検索（メートル）
 
-map.on('moveend', function () {
-    const center = map.getCenter();
-    const distance = map.distance(
-        [lastFetchedLat, lastFetchedLon],
-        [center.lat, center.lng]
+map.on("moveend", function () {
+
+    const bounds = map.getBounds();
+
+    // キャッシュ済みなら取得しない
+    const alreadyFetched = fetchedAreas.some(area =>
+        area.contains(bounds.getNorthWest()) &&
+        area.contains(bounds.getSouthEast())
     );
 
-    if (distance > REFETCH_DISTANCE) {
-        lastFetchedLat = center.lat;
-        lastFetchedLon = center.lng;
-        fetchNearbyParks(center.lat, center.lng);
-    }
+    if (alreadyFetched) return;
+
+    // 表示範囲を25%広げてキャッシュ
+    const south = bounds.getSouth();
+    const west = bounds.getWest();
+    const north = bounds.getNorth();
+    const east = bounds.getEast();
+
+    const latMargin = (north - south) * 0.25;
+    const lonMargin = (east - west) * 0.25;
+
+    const expandedBounds = L.latLngBounds(
+        [south - latMargin, west - lonMargin],
+        [north + latMargin, east + lonMargin]
+    );
+
+    fetchedAreas.push(expandedBounds);
+
+    const center = map.getCenter();
+
+    fetchNearbyParks(center.lat, center.lng);
+
 });
 
-let isFetchingParks = false;
+function isAreaFetched(bounds) {
+
+    return fetchedAreas.some(area =>
+        area.contains(bounds.getNorthWest()) &&
+        area.contains(bounds.getSouthEast())
+    );
+
+}
 
 function fetchNearbyParks(lat, lon) {
 
@@ -301,6 +336,13 @@ function fetchNearbyParks(lat, lon) {
                 const pName = tags.name ? tags.name : fallbackName;
 
                 if (pLat && pLon) {
+
+                    const key = `${pLat},${pLon}`;
+                    if (parkMap.has(key)) {
+                        return;
+                        }
+
+
                     const marker = L.circleMarker([pLat, pLon], {
                         radius: 8,
                         fillColor: "#2e7d32",
@@ -336,12 +378,13 @@ function fetchNearbyParks(lat, lon) {
                         }
                     });
                     markerGroup.addLayer(marker);
+                    parkMap.set(key, marker);
                 }
             });
         }
     })
     .catch(error => {
-    console.error("公園データの取得に失敗しました:", error);
+        console.error("公園データの取得に失敗しました:", error);
     })
 
     .finally(() => {
