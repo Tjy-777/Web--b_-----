@@ -11,6 +11,36 @@ let currentUser = null;
 // 現在、情報シートに表示されている場所（保存ボタンで使う）
 let currentDisplayedPlace = null;
 
+// ★追加：ログイン中ユーザーが保存済みの場所（全件）をキャッシュしておく
+//   これを使って「保存ボタンを押す前」から保存済みかどうかを判定する
+let savedPlacesCache = [];
+
+function refreshSavedPlacesCache() {
+    if (!currentUser) {
+        savedPlacesCache = [];
+        return Promise.resolve();
+    }
+
+    return fetchSavedPlaces() // limit指定なし = 全件取得
+        .then(data => {
+            savedPlacesCache = Array.isArray(data) ? data : [];
+        })
+        .catch(error => {
+            console.error("保存済みキャッシュの取得に失敗しました:", error);
+            savedPlacesCache = [];
+        });
+}
+
+// 同じ名前・半径50m以内の場所がキャッシュ内にあれば「保存済み」とみなす
+// （save_place.php側の重複判定ロジックと合わせている）
+function isPlaceSaved(name, lat, lon) {
+    if (!name || lat == null || lon == null) return false;
+
+    return savedPlacesCache.some(p =>
+        p.name === name && map.distance([lat, lon], [p.lat, p.lon]) <= 50
+    );
+}
+
 function savePlace(name, lat, lon, type) {
     return fetch(`${API_BASE}save_place.php`, {
         method: 'POST',
@@ -20,8 +50,9 @@ function savePlace(name, lat, lon, type) {
     }).then(res => res.json());
 }
 
-function fetchSavedPlaces() {
-    return fetch(`${API_BASE}get_places.php`, { credentials: 'same-origin' }).then(res => res.json());
+function fetchSavedPlaces(limit) {
+    const url = limit ? `${API_BASE}get_places.php?limit=${limit}` : `${API_BASE}get_places.php`;
+    return fetch(url, { credentials: 'same-origin' }).then(res => res.json());
 }
 
 function deletePlace(id) {
@@ -33,18 +64,32 @@ function deletePlace(id) {
     }).then(res => res.json());
 }
 
-// 情報シートの一番下に「この場所を保存」ボタンを追加する共通関数
+// 情報シートの一番下に保存ボタンを追加する共通関数
+// ★変更：currentDisplayedPlaceが既に保存済みなら、最初から「保存済み」表示にする
 function appendSaveButtonToFeaturesList() {
     const featuresList = document.getElementById('park-features-list');
     if (!featuresList) return;
 
-    featuresList.innerHTML += `
-        <li style="margin-top: 12px; text-align: center; list-style: none;">
-            <button id="save-place-btn" style="padding: 8px 18px; background: #ffb74d; color: white; border: none; border-radius: 20px; font-weight: bold; cursor: pointer;">
-                ⭐ この場所を保存
-            </button>
-        </li>
-    `;
+    const alreadySaved = currentUser && currentDisplayedPlace &&
+        isPlaceSaved(currentDisplayedPlace.name, currentDisplayedPlace.lat, currentDisplayedPlace.lon);
+
+    if (alreadySaved) {
+        featuresList.innerHTML += `
+            <li style="margin-top: 12px; text-align: center; list-style: none;">
+                <button id="save-place-btn" disabled style="padding: 8px 18px; background: #bbb; color: white; border: none; border-radius: 20px; font-weight: bold; cursor: default;">
+                    ⭐ 保存済みです
+                </button>
+            </li>
+        `;
+    } else {
+        featuresList.innerHTML += `
+            <li style="margin-top: 12px; text-align: center; list-style: none;">
+                <button id="save-place-btn" style="padding: 8px 18px; background: #ffb74d; color: white; border: none; border-radius: 20px; font-weight: bold; cursor: pointer;">
+                    ⭐ この場所を保存
+                </button>
+            </li>
+        `;
+    }
 }
 
 // 保存ボタンはinnerHTMLで都度作り直されるので、documentレベルでイベント委任する
@@ -70,6 +115,18 @@ document.addEventListener('click', function (e) {
         .then(res => {
             if (res.success) {
                 e.target.textContent = '✅ 保存しました';
+
+                // ★追加：キャッシュにも即座に反映しておく（再度開いた時に「保存済み」と判定されるように）
+                savedPlacesCache.push({
+                    id: res.id,
+                    name: currentDisplayedPlace.name,
+                    lat: currentDisplayedPlace.lat,
+                    lon: currentDisplayedPlace.lon,
+                    type: currentDisplayedPlace.type
+                });
+            } else if (res.duplicate) {
+                // ★追加：すでに保存済みの場所は、削除するまで再保存できないようにする
+                e.target.textContent = '⭐ 保存済みです';
             } else {
                 e.target.textContent = '保存に失敗しました';
                 e.target.disabled = false;
@@ -117,20 +174,28 @@ const mapillaryLines = L.vectorGrid.protobuf(mapillaryUrl, {
     attribution: '© <a href="https://www.mapillary.com/terms" target="_blank">Mapillary</a>'
 });
 
+// ★追加：ストリートビュールートやレイヤーボタンをクリックした直後の
+//   地図クリック（仮ピン設置）を1回だけ無視するためのフラグ
+let ignoreNextMapClick = false;
+
 mapillaryLines.on('click', function(e) {
+    // ★追加：この直後に発生する地図側のクリックで仮ピンが立たないようにする
+    ignoreNextMapClick = true;
+
     const lat = e.latlng.lat;
     const lon = e.latlng.lng;
     
     const titleElement = document.getElementById('park-title');
     if (titleElement) titleElement.textContent = "ストリートビュー（指定地点）";
-    
+
+    // ★修正：保存ボタンの状態判定に使うため、先にセットしておく
+    currentDisplayedPlace = { name: "ストリートビュー地点", lat: lat, lon: lon, type: null };
+
     const featuresList = document.getElementById('park-features-list');
     if (featuresList) {
         featuresList.innerHTML = '<li style="margin-bottom: 6px;">📍 地図上の撮影ルートが選択されました</li>';
         appendSaveButtonToFeaturesList();
     }
-
-    currentDisplayedPlace = { name: "ストリートビュー地点", lat: lat, lon: lon, type: null };
 
     showStreetView(lat, lon);
 });
@@ -547,6 +612,12 @@ function showStreetView(lat, lon) {
 // ==========================================
 map.on("click", function (e) {
 
+    // ★追加：直前にストリートビュールートがクリックされていた場合、今回のクリックは無視する
+    if (ignoreNextMapClick) {
+        ignoreNextMapClick = false;
+        return;
+    }
+
     const lat = e.latlng.lat;
     const lon = e.latlng.lng;
 
@@ -699,9 +770,11 @@ function searchNearestPark(lat, lon) {
                 document.getElementById("park-title").textContent = "選択した場所";
                 document.getElementById("park-features-list").innerHTML =
                     `<li>この周辺100m以内に公園情報はありません。</li>`;
-                appendSaveButtonToFeaturesList();
 
+                // ★修正：保存ボタンの状態判定に使うため、先にセットしておく
                 currentDisplayedPlace = { name: "選択した場所", lat: lat, lon: lon, type: null };
+
+                appendSaveButtonToFeaturesList();
 
                 showStreetView(lat, lon);
             }
@@ -738,6 +811,14 @@ if (menuBtn) menuBtn.addEventListener('click', openSideMenu);
 if (sideCloseBtn) sideCloseBtn.addEventListener('click', closeSideMenu);
 if (sideOverlay) sideOverlay.addEventListener('click', closeSideMenu); // 項目以外(暗転部分)をクリックしたら閉じる
 
+// ★追加：「お気に入り」の見出し部分をタップ → 一覧・削除ができる別ページへ移動
+const favoritesMenuItem = document.getElementById('favorites-menu-item');
+if (favoritesMenuItem) {
+    favoritesMenuItem.addEventListener('click', () => {
+        window.location.href = 'favorites.html';
+    });
+}
+
 // ======================================================
 // ★追加：お気に入り（保存した場所）一覧の読み込みと描画
 // ======================================================
@@ -753,7 +834,7 @@ function loadFavorites() {
 
     list.innerHTML = '<li class="favorite-empty">読み込み中...</li>';
 
-    fetchSavedPlaces()
+    fetchSavedPlaces(10) // ★変更：メイン画面は新しい順10件だけ表示
         .then(places => renderFavorites(places))
         .catch(error => {
             console.error("保存済み場所の取得に失敗しました:", error);
@@ -775,9 +856,9 @@ function renderFavorites(places) {
     places.forEach(place => {
         const li = document.createElement('li');
         li.className = 'favorite-item';
+        // ★変更：メイン画面では削除できないようにするため、削除ボタンは表示しない
         li.innerHTML = `
             <span class="favorite-name">${place.name}</span>
-            <button class="favorite-delete-btn" data-id="${place.id}" aria-label="削除">×</button>
         `;
 
         // 名前部分をクリック → その場所へ地図を移動して詳細を表示
@@ -787,20 +868,14 @@ function renderFavorites(places) {
             document.getElementById('park-title').textContent = place.name;
             document.getElementById('park-features-list').innerHTML =
                 '<li style="margin-bottom: 6px;">⭐ 保存した場所</li>';
-            appendSaveButtonToFeaturesList();
 
+            // ★修正：保存ボタンの状態判定に使うため、先にセットしておく
             currentDisplayedPlace = { name: place.name, lat: place.lat, lon: place.lon, type: place.type };
+
+            appendSaveButtonToFeaturesList();
 
             showStreetView(place.lat, place.lon);
             closeSideMenu();
-        });
-
-        // ×ボタン → 削除
-        li.querySelector('.favorite-delete-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            const id = e.currentTarget.dataset.id;
-
-            deletePlace(id).then(() => loadFavorites());
         });
 
         list.appendChild(li);
@@ -831,6 +906,7 @@ function checkLoginStatus() {
         .then(data => {
             currentUser = data.loggedIn ? data.user : null;
             updateSideUserArea();
+            return refreshSavedPlacesCache(); // ★追加：保存済み一覧のキャッシュも合わせて更新
         })
         .catch(error => {
             console.error("ログイン状態の確認に失敗しました:", error);

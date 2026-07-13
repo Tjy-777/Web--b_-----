@@ -23,6 +23,31 @@ if ($name === '' || $lat === null || $lon === null) {
 }
 
 try {
+    // ★追加：同じ名前・近い場所（半径50m以内）がすでに保存されていないか確認する
+    //   緯度1度 ≒ 111,000m として、大まかな距離を計算する
+    $checkStmt = $pdo->prepare(
+        'SELECT id FROM saved_places
+         WHERE user_id = :user_id
+           AND name = :name
+           AND (
+                (lat - :lat) * (lat - :lat) * 111000 * 111000
+              + (lon - :lon) * (lon - :lon) * 91000 * 91000
+           ) <= 50 * 50
+         LIMIT 1'
+    );
+    $checkStmt->execute([
+        ':user_id' => $userId,
+        ':name' => $name,
+        ':lat' => $lat,
+        ':lon' => $lon,
+    ]);
+
+    if ($checkStmt->fetch()) {
+        http_response_code(409);
+        echo json_encode(['success' => false, 'duplicate' => true, 'error' => 'この場所はすでに保存されています']);
+        exit;
+    }
+
     $stmt = $pdo->prepare(
         'INSERT INTO saved_places (user_id, name, lat, lon, type) VALUES (:user_id, :name, :lat, :lon, :type)'
     );

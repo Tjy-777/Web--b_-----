@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>お気に入り | ステップグリーン</title>
+    <link rel="icon" href="images/logo.png">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="favorites.css">
+</head>
+<body>
+    <header>
+        <button id="back-btn" class="back-btn" aria-label="戻る">←</button>
+        <h1>お気に入り</h1>
+    </header>
+
+    <main class="favorites-main">
+        <ul id="favorites-full-list" class="favorites-full-list"></ul>
+    </main>
+
+    <script>
+        // ★このページから見て、PHPファイルを置いた場所への相対パス（script.jsと合わせる）
+        const API_BASE = 'api/';
+
+        function fetchAllSavedPlaces() {
+            // limitを指定しない = 全件取得
+            return fetch(`${API_BASE}get_places.php`, { credentials: 'same-origin' }).then(res => res.json());
+        }
+
+        function deletePlace(id) {
+            return fetch(`${API_BASE}delete_place.php`, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            }).then(res => res.json());
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr.replace(' ', 'T'));
+            if (isNaN(d.getTime())) return '';
+            return d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        function renderList(places) {
+            const list = document.getElementById('favorites-full-list');
+            list.innerHTML = '';
+
+            if (!places || places.length === 0) {
+                list.innerHTML = '<li class="favorites-empty">保存した場所はまだありません</li>';
+                return;
+            }
+
+            places.forEach(place => {
+                const li = document.createElement('li');
+                li.className = 'favorites-full-item';
+
+                li.innerHTML = `
+                    <div class="favorites-full-info">
+                        <div class="favorites-full-name">${place.name}</div>
+                        <div class="favorites-full-date">${formatDate(place.created_at)}</div>
+                    </div>
+                    <button class="favorites-full-delete-btn" aria-label="削除">×</button>
+                `;
+
+                li.querySelector('.favorites-full-delete-btn').addEventListener('click', () => {
+                    if (!confirm(`「${place.name}」を削除しますか？`)) return;
+
+                    deletePlace(place.id).then(res => {
+                        if (res.success) {
+                            loadList();
+                        } else {
+                            alert(res.error || '削除に失敗しました');
+                        }
+                    });
+                });
+
+                list.appendChild(li);
+            });
+        }
+
+        function loadList() {
+            const list = document.getElementById('favorites-full-list');
+            list.innerHTML = '<li class="favorites-empty">読み込み中...</li>';
+
+            fetchAllSavedPlaces()
+                .then(data => {
+                    // ログインしていない場合などはAPIが配列以外(エラーオブジェクト)を返す
+                    if (!Array.isArray(data)) {
+                        window.location.href = 'login.html';
+                        return;
+                    }
+                    renderList(data);
+                })
+                .catch(error => {
+                    console.error("保存済み場所の取得に失敗しました:", error);
+                    list.innerHTML = '<li class="favorites-empty">読み込みに失敗しました</li>';
+                });
+        }
+
+        document.getElementById('back-btn').addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
+
+        loadList();
+    </script>
+</body>
+</html>

@@ -9,10 +9,16 @@ if (!isset($_SESSION['user_id'])) {
 }
 $userId = (int)$_SESSION['user_id'];
 
+// ★追加：?limit=10 のように指定があれば件数を絞る（無指定なら全件）
+$limit = isset($_GET['limit']) ? (int)$_GET['limit'] : null;
+
 try {
-    $stmt = $pdo->prepare(
-        'SELECT id, name, lat, lon, type, created_at FROM saved_places WHERE user_id = :user_id ORDER BY created_at DESC'
-    );
+    $sql = 'SELECT id, name, lat, lon, type, created_at FROM saved_places WHERE user_id = :user_id ORDER BY created_at DESC';
+    if ($limit && $limit > 0) {
+        $sql .= ' LIMIT ' . $limit; // $limitは(int)キャスト済みなのでSQLインジェクションの心配なし
+    }
+
+    $stmt = $pdo->prepare($sql);
     $stmt->execute([':user_id' => $userId]);
     $places = $stmt->fetchAll();
 
