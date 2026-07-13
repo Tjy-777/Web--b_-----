@@ -36,6 +36,13 @@
                 お気に入り（場所保存）
             </li>
         </ul>
+        <ul id="favorites-list" class="favorites-list"></ul>
+
+         <!-- ★追加：メニュー下部のユーザー表示欄 -->
+        <div id="side-user-area" class="side-user-area">
+            <span class="side-user-icon">👤</span>
+            <span id="side-user-label">読み込み中...</span>
+        </div>
     </nav>
 
     <div id="info-sheet" class="info-sheet">
@@ -64,6 +71,17 @@
             </div>
         </div>
     </div>
+
+    <!-- ★変更：プロフィール確認のみ（ログイン/新規登録は login.html / register.html に分離） -->
+    <div id="user-screen" class="user-screen">
+        <button id="user-screen-close-btn" class="side-close-btn" aria-label="閉じる">×</button>
+
+        <div id="profile-view" class="profile-view">
+            <div class="profile-icon">👤</div>
+            <h2 id="profile-username"></h2>
+            <button id="logout-btn" class="auth-submit-btn logout-btn">ログアウト</button>
+        </div>
+    </div>
     
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
@@ -71,5 +89,6 @@
 
     <script src="config.js"></script>
     <script src="script.js"></script>
+
 </body>
 </html>

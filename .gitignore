@@ -1,16 +1,29 @@
-# 【追加】トークンなどの秘密情報を書いた設定ファイル
+# 秘密情報を書いた設定ファイル
 config.js
+config.php
 
-# データベースの接続情報が書かれたファイル 
-config.php 
+# 将来、環境変数管理に移行した場合に備えて
+.env
 
-# エディタ（VSCodeなど）の設定フォルダ 
-.vscode/ 
+# エディタの設定フォルダ
+.vscode/
+.idea/
 
-# Windowsのシステムが自動生成するゴミファイル 
-Thumbs.db 
-ehthumbs.db 
-Desktop.ini 
+# 依存パッケージ（将来npm等を使う場合に備えて）
+node_modules/
 
-# ログファイルやキャッシュ 
+# Windowsのシステムが自動生成するゴミファイル
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# macOSのシステムが自動生成するゴミファイル
+.DS_Store
+
+# ログファイルやキャッシュ
 *.log
+
+# 本番DBのバックアップ・ダンプファイル（実データを含むため）
+# ※ sql/schema.sql, sql/users_schema.sql のような「構造のみ」のファイルは
+#   Git管理したいので、ダンプファイルには dump_ を頭に付けるなど命名を分けてください
+dump_*.sql

@@ -433,3 +433,182 @@ header {
 .side-menu-icon {
     font-size: 1.2rem;
 }
+
+/* ======================================================
+   ★追加：お気に入り一覧のデザイン
+   ====================================================== */
+.favorites-list {
+    list-style: none;
+    margin-top: 4px;
+    padding-left: 6px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.favorite-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 6px;
+    border-bottom: 1px dashed #ddd;
+    font-size: 0.9rem;
+}
+
+.favorite-name {
+    color: #333;
+    cursor: pointer;
+    flex: 1;
+}
+
+.favorite-name:active {
+    color: #2e7d32;
+}
+
+.favorite-delete-btn {
+    background: none;
+    border: none;
+    color: #d32f2f;
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 0 6px;
+}
+
+.favorite-empty {
+    color: #999;
+    font-size: 0.85rem;
+    padding: 10px 6px;
+    list-style: none;
+}
+
+/* ======================================================
+   ★追加：サイドメニュー下部のユーザー表示欄
+   ====================================================== */
+.side-menu {
+    display: flex;
+    flex-direction: column;
+}
+
+.side-user-area {
+    margin-top: auto; /* メニューの一番下に押し下げる */
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 8px;
+    border-top: 1px solid #eee;
+    cursor: pointer;
+    font-weight: bold;
+    color: #2e7d32;
+}
+
+.side-user-area:active {
+    background-color: #f5f5f5;
+}
+
+.side-user-icon {
+    font-size: 1.4rem;
+}
+
+/* ======================================================
+   ★追加：ユーザー画面（ログイン／新規登録／プロフィール）
+   ====================================================== */
+.user-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: white;
+    z-index: 3000; /* サイドメニュー(2001)よりさらに手前 */
+    padding: 20px;
+    transform: translateY(100%); /* 最初は画面下に隠す */
+    transition: transform 0.3s ease-in-out;
+    overflow-y: auto;
+}
+
+.user-screen.open {
+    transform: translateY(0);
+}
+
+.auth-view,
+.profile-view {
+    display: flex;
+    flex-direction: column;
+    max-width: 320px;
+    margin: 60px auto 0 auto;
+}
+
+.auth-tabs {
+    display: flex;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #eee;
+}
+
+.auth-tab-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 12px 0;
+    font-size: 1rem;
+    font-weight: bold;
+    color: #999;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+}
+
+.auth-tab-btn.active {
+    color: #2e7d32;
+    border-bottom: 2px solid #2e7d32;
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.auth-form input {
+    padding: 12px 14px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+}
+
+.auth-submit-btn {
+    background-color: #2e7d32;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 25px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 6px;
+}
+
+.auth-submit-btn:active {
+    transform: scale(0.98);
+}
+
+.auth-error {
+    color: #d32f2f;
+    font-size: 0.85rem;
+    min-height: 1.2em;
+    text-align: center;
+}
+
+.profile-view {
+    align-items: center;
+    text-align: center;
+}
+
+.profile-icon {
+    font-size: 3rem;
+    margin-bottom: 10px;
+}
+
+.logout-btn {
+    background-color: #d32f2f;
+    margin-top: 20px;
+    width: 100%;
+}

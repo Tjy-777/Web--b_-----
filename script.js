@@ -1,4 +1,89 @@
 // ======================================================
+// 0. 場所保存機能（PHP + MySQL）
+// ======================================================
+// ★このscript.jsから見て、PHPファイルを置いた場所への相対パス。
+//   例：index.html と同じ階層に api フォルダを置いた場合 → 'api/'
+const API_BASE = 'api/';
+
+// 現在ログイン中のユーザー情報（未ログインならnull）
+let currentUser = null;
+
+// 現在、情報シートに表示されている場所（保存ボタンで使う）
+let currentDisplayedPlace = null;
+
+function savePlace(name, lat, lon, type) {
+    return fetch(`${API_BASE}save_place.php`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, lat, lon, type })
+    }).then(res => res.json());
+}
+
+function fetchSavedPlaces() {
+    return fetch(`${API_BASE}get_places.php`, { credentials: 'same-origin' }).then(res => res.json());
+}
+
+function deletePlace(id) {
+    return fetch(`${API_BASE}delete_place.php`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+    }).then(res => res.json());
+}
+
+// 情報シートの一番下に「この場所を保存」ボタンを追加する共通関数
+function appendSaveButtonToFeaturesList() {
+    const featuresList = document.getElementById('park-features-list');
+    if (!featuresList) return;
+
+    featuresList.innerHTML += `
+        <li style="margin-top: 12px; text-align: center; list-style: none;">
+            <button id="save-place-btn" style="padding: 8px 18px; background: #ffb74d; color: white; border: none; border-radius: 20px; font-weight: bold; cursor: pointer;">
+                ⭐ この場所を保存
+            </button>
+        </li>
+    `;
+}
+
+// 保存ボタンはinnerHTMLで都度作り直されるので、documentレベルでイベント委任する
+document.addEventListener('click', function (e) {
+    if (e.target && e.target.id === 'save-place-btn') {
+        if (!currentDisplayedPlace) return;
+
+        // ★追加：未ログインなら保存させず、ログイン画面へ誘導する
+        if (!currentUser) {
+            openUserScreen();
+            return;
+        }
+
+        e.target.disabled = true;
+        e.target.textContent = '保存中...';
+
+        savePlace(
+            currentDisplayedPlace.name,
+            currentDisplayedPlace.lat,
+            currentDisplayedPlace.lon,
+            currentDisplayedPlace.type
+        )
+        .then(res => {
+            if (res.success) {
+                e.target.textContent = '✅ 保存しました';
+            } else {
+                e.target.textContent = '保存に失敗しました';
+                e.target.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error("保存エラー:", error);
+            e.target.textContent = '保存に失敗しました';
+            e.target.disabled = false;
+        });
+    }
+});
+
+// ======================================================
 // 1. マップの初期設定
 // ======================================================
 const startLat = 35.4637949;  // 緯度
@@ -42,8 +127,11 @@ mapillaryLines.on('click', function(e) {
     const featuresList = document.getElementById('park-features-list');
     if (featuresList) {
         featuresList.innerHTML = '<li style="margin-bottom: 6px;">📍 地図上の撮影ルートが選択されました</li>';
+        appendSaveButtonToFeaturesList();
     }
-    
+
+    currentDisplayedPlace = { name: "ストリートビュー地点", lat: lat, lon: lon, type: null };
+
     showStreetView(lat, lon);
 });
 
@@ -63,7 +151,6 @@ const layersControl = L.control.layers(baseMaps, overlayMaps, { position: 'tople
 // ★修正：レイヤー切り替えボタンを「ホバーで開く」→「クリックで開く」に変更
 // （Leaflet内部のmouseover/clickハンドラより先にイベントを止めることで競合を防ぐ）
 // ======================================================
-let ignoreNextMapClick = false;
 const layersContainer = layersControl.getContainer();
 const layersToggle = layersContainer ? layersContainer.querySelector('.leaflet-control-layers-toggle') : null;
 
@@ -92,9 +179,6 @@ if (layersContainer && layersToggle) {
             e.stopPropagation();
 
             layersContainer.classList.toggle('leaflet-control-layers-expanded');
-
-            // ★追加：このクリックの直後に地図側でも仮ピンが立たないようにする
-            ignoreNextMapClick = true;
         }
     }, true);
 }
@@ -230,14 +314,6 @@ let selectedMarker = null;
 
 let parks = [];
 
-// 重複マーカー防止
-const parkMap = new Map();
-
-// 取得済みエリアを保存
-const fetchedAreas = [];
-// 通信中フラグ
-let isFetchingParks = false;
-
 fetchNearbyParks(startLat, startLon);
 
 // ======================================================
@@ -247,53 +323,25 @@ let lastFetchedLat = startLat;
 let lastFetchedLon = startLon;
 const REFETCH_DISTANCE = 500; // これ以上動いたら再検索（メートル）
 
-map.on("moveend", function () {
-
-    const bounds = map.getBounds();
-
-    // キャッシュ済みなら取得しない
-    const alreadyFetched = fetchedAreas.some(area =>
-        area.contains(bounds.getNorthWest()) &&
-        area.contains(bounds.getSouthEast())
-    );
-
-    if (alreadyFetched) return;
-
-    // 表示範囲を25%広げてキャッシュ
-    const south = bounds.getSouth();
-    const west = bounds.getWest();
-    const north = bounds.getNorth();
-    const east = bounds.getEast();
-
-    const latMargin = (north - south) * 0.25;
-    const lonMargin = (east - west) * 0.25;
-
-    const expandedBounds = L.latLngBounds(
-        [south - latMargin, west - lonMargin],
-        [north + latMargin, east + lonMargin]
-    );
-
-    fetchedAreas.push(expandedBounds);
-
+map.on('moveend', function () {
     const center = map.getCenter();
-
-    fetchNearbyParks(center.lat, center.lng);
-
-});
-
-function isAreaFetched(bounds) {
-
-    return fetchedAreas.some(area =>
-        area.contains(bounds.getNorthWest()) &&
-        area.contains(bounds.getSouthEast())
+    const distance = map.distance(
+        [lastFetchedLat, lastFetchedLon],
+        [center.lat, center.lng]
     );
 
-}
+    if (distance > REFETCH_DISTANCE) {
+        lastFetchedLat = center.lat;
+        lastFetchedLon = center.lng;
+        fetchNearbyParks(center.lat, center.lng);
+    }
+});
 
 function fetchNearbyParks(lat, lon) {
 
-    if (isFetchingParks) return;
-    isFetchingParks = true;
+    markerGroup.clearLayers();
+
+    parks = [];
 
     const radius = 2000;
     const overpassUrl = 'https://overpass-api.de/api/interpreter';
@@ -318,10 +366,6 @@ function fetchNearbyParks(lat, lon) {
     })
 
     .then(data => {
-
-        markerGroup.clearLayers();
-        parks = [];
-
         if (data.elements && data.elements.length > 0) {
             data.elements.forEach(element => {
                 const pLat = element.lat || (element.center && element.center.lat);
@@ -336,13 +380,6 @@ function fetchNearbyParks(lat, lon) {
                 const pName = tags.name ? tags.name : fallbackName;
 
                 if (pLat && pLon) {
-
-                    const key = `${pLat},${pLon}`;
-                    if (parkMap.has(key)) {
-                        return;
-                        }
-
-
                     const marker = L.circleMarker([pLat, pLon], {
                         radius: 8,
                         fillColor: "#2e7d32",
@@ -378,18 +415,11 @@ function fetchNearbyParks(lat, lon) {
                         }
                     });
                     markerGroup.addLayer(marker);
-                    parkMap.set(key, marker);
                 }
             });
         }
     })
-    .catch(error => {
-        console.error("公園データの取得に失敗しました:", error);
-    })
-
-    .finally(() => {
-        isFetchingParks = false;
-    });
+    .catch(error => console.error("公園データの取得に失敗しました:", error));
 }
 
 window.selectPark = function(name, tags, lat, lon) {
@@ -397,6 +427,14 @@ window.selectPark = function(name, tags, lat, lon) {
     if (titleElement) titleElement.textContent = name;
 
     showStreetView(lat, lon);
+
+    // ★追加：保存ボタン用に、今表示している場所の情報を控えておく
+    let placeType = null;
+    if (tags.leisure === "park") placeType = "park";
+    else if (tags.landuse === "forest") placeType = "forest";
+    else if (tags.natural === "wood") placeType = "wood";
+
+    currentDisplayedPlace = { name: name, lat: lat, lon: lon, type: placeType };
 
     const featuresList = document.getElementById('park-features-list');
     if (featuresList) {
@@ -448,6 +486,7 @@ window.selectPark = function(name, tags, lat, lon) {
             <li><b>駐車場:</b> ${parkingText}</li>
         `;
 
+        appendSaveButtonToFeaturesList();
     }
 };
 
@@ -507,12 +546,6 @@ function showStreetView(lat, lon) {
 // 地図をタップした場所を検索
 // ==========================================
 map.on("click", function (e) {
-
-    // ★修正：直前にレイヤーボタンを操作していた場合は、今回の地図クリックを無視する
-    if (ignoreNextMapClick) {
-        ignoreNextMapClick = false;
-        return;
-    }
 
     const lat = e.latlng.lat;
     const lon = e.latlng.lng;
@@ -666,6 +699,10 @@ function searchNearestPark(lat, lon) {
                 document.getElementById("park-title").textContent = "選択した場所";
                 document.getElementById("park-features-list").innerHTML =
                     `<li>この周辺100m以内に公園情報はありません。</li>`;
+                appendSaveButtonToFeaturesList();
+
+                currentDisplayedPlace = { name: "選択した場所", lat: lat, lon: lon, type: null };
+
                 showStreetView(lat, lon);
             }
         })
@@ -689,6 +726,7 @@ const sideCloseBtn = document.getElementById('side-close-btn');
 function openSideMenu() {
     sideMenu.classList.add('open');
     sideOverlay.classList.add('open');
+    loadFavorites(); // ★追加：メニューを開くたびに最新の保存済み場所を読み込む
 }
 
 function closeSideMenu() {
@@ -699,3 +737,147 @@ function closeSideMenu() {
 if (menuBtn) menuBtn.addEventListener('click', openSideMenu);
 if (sideCloseBtn) sideCloseBtn.addEventListener('click', closeSideMenu);
 if (sideOverlay) sideOverlay.addEventListener('click', closeSideMenu); // 項目以外(暗転部分)をクリックしたら閉じる
+
+// ======================================================
+// ★追加：お気に入り（保存した場所）一覧の読み込みと描画
+// ======================================================
+function loadFavorites() {
+    const list = document.getElementById('favorites-list');
+    if (!list) return;
+
+    // ★追加：未ログインならAPIを呼ばず、ログインを促すメッセージだけ表示
+    if (!currentUser) {
+        list.innerHTML = '<li class="favorite-empty">ログインすると保存した場所が表示されます</li>';
+        return;
+    }
+
+    list.innerHTML = '<li class="favorite-empty">読み込み中...</li>';
+
+    fetchSavedPlaces()
+        .then(places => renderFavorites(places))
+        .catch(error => {
+            console.error("保存済み場所の取得に失敗しました:", error);
+            list.innerHTML = '<li class="favorite-empty">読み込みに失敗しました</li>';
+        });
+}
+
+function renderFavorites(places) {
+    const list = document.getElementById('favorites-list');
+    if (!list) return;
+
+    list.innerHTML = '';
+
+    if (!places || places.length === 0) {
+        list.innerHTML = '<li class="favorite-empty">保存した場所はまだありません</li>';
+        return;
+    }
+
+    places.forEach(place => {
+        const li = document.createElement('li');
+        li.className = 'favorite-item';
+        li.innerHTML = `
+            <span class="favorite-name">${place.name}</span>
+            <button class="favorite-delete-btn" data-id="${place.id}" aria-label="削除">×</button>
+        `;
+
+        // 名前部分をクリック → その場所へ地図を移動して詳細を表示
+        li.querySelector('.favorite-name').addEventListener('click', () => {
+            map.setView([place.lat, place.lon], 17);
+
+            document.getElementById('park-title').textContent = place.name;
+            document.getElementById('park-features-list').innerHTML =
+                '<li style="margin-bottom: 6px;">⭐ 保存した場所</li>';
+            appendSaveButtonToFeaturesList();
+
+            currentDisplayedPlace = { name: place.name, lat: place.lat, lon: place.lon, type: place.type };
+
+            showStreetView(place.lat, place.lon);
+            closeSideMenu();
+        });
+
+        // ×ボタン → 削除
+        li.querySelector('.favorite-delete-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = e.currentTarget.dataset.id;
+
+            deletePlace(id).then(() => loadFavorites());
+        });
+
+        list.appendChild(li);
+    });
+}
+
+// ======================================================
+// ★変更：ユーザー登録・ログインは login.html / register.html に分離
+//   ここでは「ログイン状態の確認」と「プロフィール確認画面の開閉」だけを扱う
+// ======================================================
+const sideUserArea = document.getElementById('side-user-area');
+const userScreen = document.getElementById('user-screen');
+const userScreenCloseBtn = document.getElementById('user-screen-close-btn');
+const profileView = document.getElementById('profile-view');
+const logoutBtn = document.getElementById('logout-btn');
+
+// ハンバーガーメニュー下部の表示を、ログイン状態に応じて更新する
+function updateSideUserArea() {
+    const label = document.getElementById('side-user-label');
+    if (!label) return;
+    label.textContent = currentUser ? currentUser.username : 'ログイン / 新規登録';
+}
+
+// 起動時に一度、サーバーへログイン状態を問い合わせる
+function checkLoginStatus() {
+    return fetch(`${API_BASE}me.php`, { credentials: 'same-origin' })
+        .then(res => res.json())
+        .then(data => {
+            currentUser = data.loggedIn ? data.user : null;
+            updateSideUserArea();
+        })
+        .catch(error => {
+            console.error("ログイン状態の確認に失敗しました:", error);
+            currentUser = null;
+            updateSideUserArea();
+        });
+}
+
+// ログイン中は本人確認画面を開く。未ログインならログインページへ移動する
+function openUserScreen() {
+    if (currentUser) {
+        if (!userScreen) return;
+        const nameEl = document.getElementById('profile-username');
+        if (nameEl) nameEl.textContent = currentUser.username;
+        userScreen.classList.add('open');
+    } else {
+        // ★変更：別ページ（login.html）へ遷移する
+        window.location.href = 'login.html';
+    }
+}
+
+function closeUserScreen() {
+    if (userScreen) userScreen.classList.remove('open');
+}
+
+// ハンバーガーメニュー下部のユーザー欄をタップ → メニューを閉じてユーザー画面 or ログインページへ
+if (sideUserArea) {
+    sideUserArea.addEventListener('click', () => {
+        closeSideMenu();
+        openUserScreen();
+    });
+}
+
+if (userScreenCloseBtn) userScreenCloseBtn.addEventListener('click', closeUserScreen);
+
+// ログアウト
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+        fetch(`${API_BASE}logout.php`, { method: 'POST', credentials: 'same-origin' })
+            .then(res => res.json())
+            .then(() => {
+                currentUser = null;
+                updateSideUserArea();
+                closeUserScreen();
+            });
+    });
+}
+
+// ページ読み込み時に、ログイン状態を確認しておく
+checkLoginStatus();

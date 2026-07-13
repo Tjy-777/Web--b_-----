@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新規登録 | ステップグリーン</title>
+    <link rel="icon" href="images/logo.png">
+    <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+    <div class="auth-card">
+        <img src="images/logo-nobg.png" alt="ステップグリーン" class="auth-logo">
+        <h1>新規登録</h1>
+
+        <form id="register-form" class="auth-form">
+            <input type="text" id="register-username" placeholder="ユーザー名（2〜50文字）" required>
+            <input type="password" id="register-password" placeholder="パスワード（6文字以上）" required>
+            <button type="submit" class="auth-submit-btn">新規登録</button>
+            <p id="register-error" class="auth-error"></p>
+        </form>
+
+        <p class="auth-switch">アカウントをお持ちの方は <a href="login.html">ログイン</a></p>
+    </div>
+
+    <script>
+        // ★このページから見て、PHPファイルを置いた場所への相対パス（script.jsと合わせる）
+        const API_BASE = 'api/';
+
+        document.getElementById('register-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const username = document.getElementById('register-username').value.trim();
+            const password = document.getElementById('register-password').value;
+            const errorEl = document.getElementById('register-error');
+            errorEl.textContent = '';
+
+            fetch(`${API_BASE}register.php`, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // 登録成功（自動ログイン済み）→ トップページへ戻る
+                    window.location.href = 'index.html';
+                } else {
+                    errorEl.textContent = data.error || '登録に失敗しました';
+                }
+            })
+            .catch(() => {
+                errorEl.textContent = '通信エラーが発生しました';
+            });
+        });
+    </script>
+</body>
+</html>
