@@ -7,11 +7,19 @@ if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'error' => '保存するにはログインが必要です']);
     exit;
 }
+verifyCsrfToken(); // ★追加
 $userId = (int)$_SESSION['user_id'];
 
 $input = json_decode(file_get_contents('php://input'), true);
 
 $name = isset($input['name']) ? trim($input['name']) : '';
+// ★追加：HTMLタグを含む名前は拒否する（保存型XSSの根本対策）
+if ($name !== strip_tags($name)) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'error' => '場所の名前に使用できない文字が含まれています']);
+    exit;
+}
+
 $lat  = isset($input['lat']) ? (float)$input['lat'] : null;
 $lon  = isset($input['lon']) ? (float)$input['lon'] : null;
 $type = isset($input['type']) ? trim($input['type']) : null;

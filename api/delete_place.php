@@ -7,6 +7,7 @@ if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'error' => 'ログインが必要です']);
     exit;
 }
+verifyCsrfToken(); // ★追加
 $userId = (int)$_SESSION['user_id'];
 
 $input = json_decode(file_get_contents('php://input'), true);
