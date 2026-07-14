@@ -39,7 +39,7 @@ function fetchNearbyParks(lat, lon) {
     parks = [];
 
     const radius = 2000;
-    const overpassUrl = 'https://overpass-api.de/api/interpreter';
+    const overpassUrl = "https://lz4.overpass-api.de/api/interpreter";
     
     const query = `
         [out:json][timeout:25];
@@ -190,7 +190,7 @@ window.selectPark = function(name, tags, lat, lon) {
 // ======================================================
 function fetchNearestParkAtPoint(lat, lon) {
     const radius = 300; // ピンポイントなので範囲は小さくてOK（速度優先）
-    const overpassUrl = 'https://overpass-api.de/api/interpreter';
+    const overpassUrl = "https://lz4.overpass-api.de/api/interpreter";
 
     const query = `
         [out:json][timeout:15];
