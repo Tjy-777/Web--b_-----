@@ -88,3 +88,33 @@ body {
 .auth-switch a:hover {
     text-decoration: underline;
 }
+
+.back-home-btn{
+    position: fixed;
+    top: 20px;
+    left: 20px;
+
+    padding: 10px 18px;
+
+    background-color: #2e7d32;
+    color: #fff;
+
+    border: none;
+    border-radius: 8px;
+
+    font-size: 14px;
+    font-weight: bold;
+
+    cursor: pointer;
+
+    transition: 0.2s;
+
+    box-shadow: 0 2px 8px rgba(0,0,0,.2);
+
+    z-index: 1000;
+}
+
+.back-home-btn:hover{
+    background-color: #1b5e20;
+    transform: translateY(-2px);
+}

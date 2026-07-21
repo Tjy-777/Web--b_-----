@@ -8,6 +8,11 @@
     <link rel="stylesheet" href="auth.css">
 </head>
 <body>
+    
+    <button class="back-home-btn" onclick="location.href='index.html'">
+    ← メイン画面
+    </button>
+
     <div class="auth-card">
         <img src="images/logo-nobg.png" alt="ステップグリーン" class="auth-logo">
         <h1>ログイン</h1>
@@ -43,16 +48,22 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    // ログイン成功 → トップページへ戻る
+                    // ログイン成功
                     window.location.href = 'index.html';
                 } else {
+                    // エラーメッセージ表示
                     errorEl.textContent = data.error || 'ログインに失敗しました';
+
+                    // パスワードだけ消去
+                    const passwordInput = document.getElementById('login-password');
+                    passwordInput.value = "";
+
+                    // パスワード欄にカーソルを戻す
+                    passwordInput.focus();
                 }
-            })
-            .catch(() => {
-                errorEl.textContent = '通信エラーが発生しました';
             });
         });
     </script>
+
 </body>
 </html>
