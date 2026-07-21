@@ -24,7 +24,7 @@ const mapillaryLines = L.vectorGrid.protobuf(mapillaryUrl, {
     maxNativeZoom: 14, 
     vectorTileLayerStyles: {
         sequence: {
-            color: '#3384cf', 
+            color: '#2e7ab8', 
             weight: 1.5,      
             opacity: 0.5      
         },
