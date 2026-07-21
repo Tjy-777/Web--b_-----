@@ -39,7 +39,9 @@ function fetchNearbyParks(lat, lon) {
     parks = [];
 
     const radius = 2000;
-    const overpassUrl = "https://lz4.overpass-api.de/api/interpreter";
+    // const overpassUrl = "https://overpass.kumi.systems/api/interpreter";
+    const overpassUrl = "https://overpass.private.coffee/api/interpreter";
+    // const overpassUrl = "https://lz4.overpass-api.de/api/interpreter";
     
     const query = `
         [out:json][timeout:25];
