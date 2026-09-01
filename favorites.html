@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>お気に入り | ステップグリーン</title>
     <link rel="icon" href="images/logo.png">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="favorites.css">
 </head>
@@ -15,9 +18,17 @@
     </header>
 
     <main class="favorites-main">
-        <ul id="favorites-full-list" class="favorites-full-list"></ul>
+        <!-- ★追加：左側に表示する参照用マップ -->
+        <div class="favorites-map-panel">
+            <div id="favorites-map-area"></div>
+        </div>
+
+        <div class="favorites-list-panel">
+            <ul id="favorites-full-list" class="favorites-full-list"></ul>
+        </div>
     </main>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="js/favorites.js"></script>
 </body>
 </html>

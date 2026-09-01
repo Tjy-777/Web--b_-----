@@ -3,12 +3,31 @@
 // 地図をタップした場所に仮ピンを立て、周辺の公園情報を検索する
 // ★依存：state.js, map-init.js, info-sheet.js, parks.js
 // ======================================================
+
+// ★追加：このクリックが発生した時点で、仮ピンのポップアップが「開いていたか」を覚えておく変数
+//   （Leafletは「clickイベントの前」に自動でポップアップを閉じてしまうため、
+//   click内でisPopupOpen()を見てももう手遅れ。preclickの時点で先に記録しておく）
+let popupWasOpenBeforeThisClick = false;
+
+map.on('preclick', function () {
+    popupWasOpenBeforeThisClick = !!(selectedMarker && selectedMarker.isPopupOpen());
+});
+
 map.on("click", function (e) {
 
     // ★追加：直前にストリートビュールートやレイヤー切り替えメニューが操作されていた場合、
     //   今回のクリックは無視する
     if (ignoreNextMapClick) {
         ignoreNextMapClick = false;
+        return;
+    }
+
+    // ★追加：仮ピンのポップアップが開いている状態でのクリックは、
+    //   「ポップアップを閉じるだけ」の1回として扱い、新しい仮ピンは立てない。
+    //   （ポップアップは既にLeaflet標準の動作で閉じられている＝テキストだけが消えた状態）
+    //   仮ピン自体はそのまま残しておき、次のクリックから通常通り新しい仮ピンを立てられるようにする。
+    if (popupWasOpenBeforeThisClick) {
+        popupWasOpenBeforeThisClick = false;
         return;
     }
 
@@ -50,7 +69,21 @@ selectedMarker.bindPopup(`
 `);
 
 // ボタンが押されたら検索
-selectedMarker.on("popupopen", () => {
+selectedMarker.on("popupopen", (e) => {
+
+    // ★追加：ポップアップ右上の「×」ボタンで閉じた場合だけ、仮ピンも一緒に消す
+    //   （それ以外の閉じ方＝地図の別の場所をタップして自動で閉じた場合などは、
+    //   テキスト（ポップアップ）だけを消して仮ピンはそのまま残す）
+    const popupElement = e.popup.getElement();
+    const closeBtn = popupElement ? popupElement.querySelector('.leaflet-popup-close-button') : null;
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            if (selectedMarker) {
+                map.removeLayer(selectedMarker);
+                selectedMarker = null;
+            }
+        });
+    }
 
     const btn = document.getElementById("open-detail-btn");
 

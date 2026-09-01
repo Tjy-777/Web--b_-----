@@ -1,7 +1,5 @@
-/* favorites.html はマップを持たないので、bodyのoverflow:hiddenを解除してスクロールできるようにする */
-body {
-    overflow: auto;
-}
+/* ★変更：マップを追加したため、style.css標準の固定ビューポート（overflow:hidden）に戻す。
+   各パネル（地図・一覧）がそれぞれ自分の内側でスクロールを完結させる */
 
 .back-btn {
     position: absolute;
@@ -16,7 +14,44 @@ body {
     padding: 4px 8px;
 }
 
+/* ======================================================
+   ★変更：左に地図・右に一覧を並べる2カラムレイアウト
+   （bodyのoverflow:hiddenはstyle.css標準のまま。
+   各パネルが自分の高さの中で完結するようにする）
+   ====================================================== */
 .favorites-main {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+}
+
+/* スマホ幅では横並びが窮屈なので、上下に積む */
+@media (max-width: 700px) {
+    .favorites-main {
+        flex-direction: column;
+    }
+}
+
+.favorites-map-panel {
+    flex: 0 0 45%;
+    height: 100%;
+}
+
+@media (max-width: 700px) {
+    .favorites-map-panel {
+        flex: 0 0 38%;
+        width: 100%;
+    }
+}
+
+#favorites-map-area {
+    width: 100%;
+    height: 100%;
+    background-color: #e0e0e0;
+}
+
+.favorites-list-panel {
     flex: 1;
     overflow-y: auto;
     padding: 16px;
@@ -38,6 +73,18 @@ body {
     padding: 14px 16px;
     margin-bottom: 10px;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* ★追加：クリックして地図に反映できることが分かるようにする */
+.favorites-full-info {
+    cursor: pointer;
+    flex: 1;
+}
+
+/* ★追加：現在マップに表示中の項目を強調する */
+.favorites-full-item.is-active {
+    outline: 2px solid #ffb74d;
+    background-color: #fff8ed;
 }
 
 .favorites-full-name {
