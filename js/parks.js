@@ -9,28 +9,9 @@ let selectedMarker = null;
 
 let parks = [];
 
+// ★変更：現在地（今回は仮の地点）周辺だけを最初に1回検索する。
+//   地図を動かしても再検索はせず、この緑ピンをそのまま置いておく。
 fetchNearbyParks(startLat, startLon);
-
-// ======================================================
-// ★追加：地図を動かしたら、その場所周辺の公園を再検索する
-// ======================================================
-let lastFetchedLat = startLat;
-let lastFetchedLon = startLon;
-const REFETCH_DISTANCE = 500; // これ以上動いたら再検索（メートル）
-
-map.on('moveend', function () {
-    const center = map.getCenter();
-    const distance = map.distance(
-        [lastFetchedLat, lastFetchedLon],
-        [center.lat, center.lng]
-    );
-
-    if (distance > REFETCH_DISTANCE) {
-        lastFetchedLat = center.lat;
-        lastFetchedLon = center.lng;
-        fetchNearbyParks(center.lat, center.lng);
-    }
-});
 
 function fetchNearbyParks(lat, lon) {
 
@@ -193,7 +174,7 @@ window.selectPark = function(name, tags, lat, lon) {
 // ======================================================
 function fetchNearestParkAtPoint(lat, lon) {
     const radius = 300; // ピンポイントなので範囲は小さくてOK（速度優先）
-    const overpassUrl = "https://lz4.overpass-api.de/api/interpreter";
+    const overpassUrl = 'https://overpass-api.de/api/interpreter';
 
     const query = `
         [out:json][timeout:15];
