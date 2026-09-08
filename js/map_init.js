@@ -10,11 +10,37 @@ const map = L.map('map-area', { zoomControl: false }).setView([startLat, startLo
 map.attributionControl.setPosition('topright');
 
 const normalMap = L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', {
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxNativeZoom: 20, // ★追加：CyclOSMが実際にタイルを提供している上限ズーム
+    maxZoom: 20         // ★追加：地図自体の最大ズームもここに合わせておく
 });
 
 const satelliteMap = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
-    attribution: '© <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>'
+    attribution: '© <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>',
+    maxNativeZoom: 18, // ★追加：国土地理院「写真」タイルが実際に提供している上限ズーム
+                        //   （これを超える分は、18の画像を自動で拡大して表示される）
+    maxZoom: 20         // ★追加：地図自体の最大ズームと合わせる（拡大表示はぼやけるが「読み込まれない」状態は防げる）
+});
+
+// ======================================================
+// ★追加：航空写真には地名・道路名などの文字情報が一切含まれていないため、
+//   現在地がわかりにくいという問題への対処。
+//   CARTO提供の「ラベルのみ」タイル（APIキー不要・無料）を、
+//   航空写真の上に重ねて表示する。
+// ======================================================
+
+// ★追加：写真タイル(zIndex 200)より上、ピンなどのマーカー(zIndex 400〜600)より下に
+//   専用のペインを作っておく（ラベルがピンや情報を隠してしまわないようにするため）
+map.createPane('satelliteLabelsPane');
+map.getPane('satelliteLabelsPane').style.zIndex = 350;
+map.getPane('satelliteLabelsPane').style.pointerEvents = 'none'; // クリック等はそのまま地図に通す
+
+const satelliteLabels = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+    attribution: '© <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 20,
+    detectRetina: true,        // ★追加：文字が潰れないよう、高精細ディスプレイでは高解像度タイルを使う
+    pane: 'satelliteLabelsPane'
 });
 
 normalMap.addTo(map);
@@ -24,7 +50,7 @@ const mapillaryLines = L.vectorGrid.protobuf(mapillaryUrl, {
     maxNativeZoom: 14, 
     vectorTileLayerStyles: {
         sequence: {
-            color: '#2e7ab8', 
+            color: '#3ca3df', 
             weight: 1.5,      
             opacity: 0.5      
         },
@@ -71,6 +97,19 @@ const overlayMaps = {
 
 L.control.zoom({ position: 'topleft' }).addTo(map);
 const layersControl = L.control.layers(baseMaps, overlayMaps, { position: 'topleft' }).addTo(map);
+
+// ======================================================
+// ★追加：ベースの地図が切り替わったら、ラベルオーバーレイの表示も連動させる
+//   ・航空写真に切り替えた時 → ラベルを自動で重ねる（地名が消えて困る問題への対処）
+//   ・通常の地図に戻した時 → 元々地名入りの地図なので、二重にならないよう外す
+// ======================================================
+map.on('baselayerchange', function (e) {
+    if (e.layer === satelliteMap) {
+        satelliteLabels.addTo(map);
+    } else {
+        map.removeLayer(satelliteLabels);
+    }
+});
 
 // ======================================================
 // ★修正：レイヤー切り替えボタンを「ホバーで開く」→「クリックで開く」に変更
